@@ -71,6 +71,11 @@ class OurArguments(TrainingArguments):
     lora: bool = False # whether to use LoRA
     lora_alpha: int = 16 # alpha in LoRA
     lora_r: int = 8 # r in LoRA
+    
+    # XGBLoRA (eXtreme Gradient Boosting LoRA)
+    xgblora: bool = False # whether to use XGBLoRA (gradient boosting with LoRA)
+    xgblora_steps_per_iteration: int = 0 # number of steps per boosting iteration (0 = disabled, merge at epoch end)
+    xgblora_merge_frequency: int = 1 # merge frequency in epochs (only used if xgblora_steps_per_iteration is 0)
 
     # Generation
     sampling: bool = False # whether to use sampling
@@ -180,12 +185,17 @@ class Framework:
             tokenizer.pad_token_id = 0 # technically <unk>
 
         # Prefix tuning/LoRA
+        self.lora_module = None  # Store LoRA module reference for XGBLoRA
         if self.args.prefix_tuning:
             from prefix import PrefixTuning
             PrefixTuning(model, num_prefix=self.args.num_prefix, reparam=not self.args.no_reparam, float16=self.args.load_float16, init_by_real_act=self.args.prefix_init_by_real_act)
-        if self.args.lora:
+        if self.args.lora or self.args.xgblora:
             from lora import LoRA
-            LoRA(model, r=self.args.lora_r, alpha=self.args.lora_alpha, float16=self.args.load_float16)
+            # XGBLoRA uses rank-1 by default for weak learners
+            lora_r = 1 if self.args.xgblora else self.args.lora_r
+            if self.args.xgblora:
+                logger.info(f"Using XGBLoRA with rank-1 adapters")
+            self.lora_module = LoRA(model, r=lora_r, alpha=self.args.lora_alpha, float16=self.args.load_float16, xgblora=self.args.xgblora)
 
         if self.args.head_tuning:
             if model.config.model_type == "opt":
@@ -411,6 +421,9 @@ class Framework:
             tokenizer=self.tokenizer,
             data_collator=DataCollatorWithPaddingAndNesting(self.tokenizer, pad_to_multiple_of=8) if self.args.train_as_classification else collator(self.tokenizer, pad_to_multiple_of=8),
         )
+        # Pass LoRA module to trainer for XGBLoRA
+        if hasattr(self, 'lora_module') and self.lora_module is not None:
+            trainer.lora_module = self.lora_module
         if self.args.save_on_interrupt:
             trainer.add_callback(SIGUSR1Callback())
 
@@ -465,6 +478,15 @@ def main():
 
     set_seed(args.seed)
     task = get_task(args.task_name)
+    
+    # If num_dev is provided and we're training, ensure we use a single train set (not ICL mode)
+    # This requires train_set_seed or num_train_sets to be set
+    if args.num_dev is not None and args.trainer != "none":
+        if args.train_set_seed is None and args.num_train_sets is None:
+            # Default to train_set_seed=0 to use single train set mode
+            args.train_set_seed = 0
+            logger.info(f"num_dev provided but train_set_seed/num_train_sets not set. Using train_set_seed=0 for single train set mode.")
+    
     train_sets = task.sample_train_sets(num_train=args.num_train, num_dev=args.num_dev, num_eval=args.num_eval, num_train_sets=args.num_train_sets, seed=args.train_set_seed)
 
     # Initialize trainer and load model

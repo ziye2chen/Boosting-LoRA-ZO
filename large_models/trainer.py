@@ -618,6 +618,13 @@ class OurTrainer(Trainer):
                     self.state.epoch = epoch + (step + 1) / steps_in_epoch
                     self.control = self.callback_handler.on_step_end(args, self.state, self.control)
 
+                    # XGBLoRA: Merge and reinitialize LoRA weights at specific step intervals
+                    if hasattr(args, 'xgblora') and args.xgblora and hasattr(self, 'lora_module'):
+                        if hasattr(args, 'xgblora_steps_per_iteration') and args.xgblora_steps_per_iteration > 0:
+                            if self.state.global_step % args.xgblora_steps_per_iteration == 0:
+                                logger.info(f"XGBLoRA: Merging and reinitializing at step {self.state.global_step}")
+                                self.lora_module.merge_and_reinit()
+
                     self._maybe_log_save_evaluate(tr_loss, model, trial, epoch, ignore_keys_for_eval)
                 else:
                     self.control = self.callback_handler.on_substep_end(args, self.state, self.control)
@@ -634,6 +641,19 @@ class OurTrainer(Trainer):
 
             self.control = self.callback_handler.on_epoch_end(args, self.state, self.control)
             self._maybe_log_save_evaluate(tr_loss, model, trial, epoch, ignore_keys_for_eval)
+
+            # XGBLoRA: Merge and reinitialize LoRA weights at the end of each boosting iteration
+            if hasattr(args, 'xgblora') and args.xgblora and hasattr(self, 'lora_module'):
+                # Check if we should merge at this epoch
+                current_iteration = epoch + 1
+                if hasattr(args, 'xgblora_merge_frequency') and args.xgblora_merge_frequency > 0:
+                    if current_iteration % args.xgblora_merge_frequency == 0:
+                        logger.info(f"XGBLoRA: Merging and reinitializing at iteration {current_iteration}")
+                        self.lora_module.merge_and_reinit()
+                else:
+                    # Default: merge at the end of each epoch
+                    logger.info(f"XGBLoRA: Merging and reinitializing at iteration {current_iteration}")
+                    self.lora_module.merge_and_reinit()
 
             if DebugOption.TPU_METRICS_DEBUG in self.args.debug:
                 if is_torch_tpu_available():

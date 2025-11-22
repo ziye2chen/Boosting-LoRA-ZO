@@ -100,16 +100,19 @@ class LoRALinear(nn.Linear):
 
 class LoRA:
 
-    def __init__(self, model, r, alpha, float16):
+    def __init__(self, model, r, alpha, float16, xgblora=False):
         """
         Input:
         r, alpha: LoRA hyperparameters
         float16: Whether the model parameters are float16 or not
+        xgblora: Whether to use XGBLoRA (gradient boosting with LoRA)
         """
 
         self.model = model
         self.hidden_dim = model.config.hidden_size
         self.float16 = float16
+        self.xgblora = xgblora
+        self.lora_modules = []  # Track all LoRA modules for XGBLoRA
 
         if model.config.model_type == "opt":
             attention_name = "attn"
@@ -138,6 +141,11 @@ class LoRA:
                     attn.q_proj.bias.data = original_q_bias
                     attn.v_proj.weight.data = original_v_weight
                     attn.v_proj.bias.data = original_v_bias
+                    
+                    # Track LoRA modules for XGBLoRA
+                    if xgblora:
+                        self.lora_modules.append(attn.q_proj)
+                        self.lora_modules.append(attn.v_proj)
                 else:
                     raise NotImplementedError
         
@@ -145,3 +153,30 @@ class LoRA:
         for n, p in model.named_parameters():
             if "lora" not in n:
                 p.requires_grad = False
+
+    def merge_and_reinit(self):
+        """
+        Merge the current LoRA weights into the base model and reinitialize LoRA parameters.
+        This is used for XGBLoRA boosting iterations.
+        """
+        if not self.xgblora:
+            logger.warning("merge_and_reinit is only for XGBLoRA mode")
+            return
+        
+        logger.info("Merging LoRA weights into base model and reinitializing for next boosting iteration")
+        
+        def T(w, fan_in_fan_out):
+            return w.transpose(0, 1) if fan_in_fan_out else w
+        
+        for module in self.lora_modules:
+            if hasattr(module, 'lora_A') and hasattr(module, 'lora_B'):
+                # Merge LoRA weights into base weights
+                with torch.no_grad():
+                    delta_w = T(module.lora_B @ module.lora_A, module.fan_in_fan_out) * module.scaling
+                    module.weight.data += delta_w
+                    
+                    # Reinitialize LoRA parameters for next iteration
+                    nn.init.kaiming_uniform_(module.lora_A, a=math.sqrt(5))
+                    nn.init.zeros_(module.lora_B)
+        
+        logger.info("LoRA merge and reinitialization complete")

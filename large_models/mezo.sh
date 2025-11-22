@@ -1,4 +1,4 @@
-MODEL=${MODEL:-facebook/opt-1.3b}
+MODEL=${MODEL:-facebook/opt-350m}
 MODEL_NAME=(${MODEL//\// })
 MODEL_NAME="${MODEL_NAME[-1]}"
 
@@ -13,11 +13,14 @@ STEPS=${STEPS:-20000}
 EVAL_STEPS=${EVAL_STEPS:-4000}
 
 MODE=${MODE:-ft}
+XGBLORA_STEPS=${XGBLORA_STEPS:-1000}  # Steps per boosting iteration for XGBLoRA
 EXTRA_ARGS=""
 if [ "$MODE" == "prefix" ]; then
     EXTRA_ARGS="--prefix_tuning --num_prefix 5 --no_reparam --prefix_init_by_real_act"
 elif [ "$MODE" == "lora" ]; then
     EXTRA_ARGS="--lora"
+elif [ "$MODE" == "xgblora" ]; then
+    EXTRA_ARGS="--xgblora --xgblora_steps_per_iteration $XGBLORA_STEPS"
 fi
 TAG=mezo-$MODE-$STEPS-$BS-$LR-$EPS-$SEED
 
@@ -49,12 +52,15 @@ echo "EPS: $EPS"
 echo "SEED: $SEED"
 echo "TRAIN/EVAL STEPS: $STEPS/$EVAL_STEPS"
 echo "MODE: $MODE"
+if [ "$MODE" == "xgblora" ]; then
+    echo "XGBLORA_STEPS: $XGBLORA_STEPS"
+fi
 echo "Extra args: $EXTRA_ARGS $TASK_ARGS"
 
 python run.py \
     --model_name $MODEL \
     --task_name $TASK \
-    --output_dir result/$TASK-${MODEL_NAME}-$TAG --tag $TAG --train_set_seed $SEED --num_train $TRAIN --num_dev $DEV --num_eval $EVAL --logging_steps 10 \
+    --output_dir E:/aOutput/$TASK-${MODEL_NAME}-$TAG --tag $TAG --train_set_seed $SEED --num_train $TRAIN --num_dev $DEV --num_eval $EVAL --logging_steps 10 \
     --max_steps $STEPS \
     --trainer zo --load_float16 \
     --learning_rate $LR --zo_eps $EPS --per_device_train_batch_size $BS --lr_scheduler_type "constant" \
