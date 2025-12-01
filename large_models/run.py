@@ -194,7 +194,21 @@ class Framework:
             # XGBLoRA uses rank-1 by default for weak learners
             lora_r = 1 if self.args.xgblora else self.args.lora_r
             if self.args.xgblora:
-                logger.info(f"Using XGBLoRA with rank-1 adapters")
+                logger.info(f"=" * 80)
+                logger.info(f"XGBLoRA Configuration:")
+                logger.info(f"  Actual rank used: {lora_r} (forced to 1 for XGBLoRA)")
+                logger.info(f"  Alpha: {self.args.lora_alpha}")
+                logger.info(f"  Scaling (alpha/r): {self.args.lora_alpha/lora_r}")
+                logger.info(f"  Steps per iteration: {self.args.xgblora_steps_per_iteration}")
+                logger.info(f"  Merge frequency (epochs): {self.args.xgblora_merge_frequency}")
+                logger.info(f"=" * 80)
+            else:
+                logger.info(f"=" * 80)
+                logger.info(f"Standard LoRA Configuration:")
+                logger.info(f"  Rank: {lora_r}")
+                logger.info(f"  Alpha: {self.args.lora_alpha}")
+                logger.info(f"  Scaling (alpha/r): {self.args.lora_alpha/lora_r}")
+                logger.info(f"=" * 80)
             self.lora_module = LoRA(model, r=lora_r, alpha=self.args.lora_alpha, float16=self.args.load_float16, xgblora=self.args.xgblora)
 
         if self.args.head_tuning:

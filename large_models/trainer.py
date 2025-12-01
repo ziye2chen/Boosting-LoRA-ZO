@@ -367,6 +367,14 @@ class OurTrainer(Trainer):
 
         self.state = TrainerState()
         self.state.is_hyper_param_search = trial is not None
+        
+        # Initialize loss tracking file for XGBLoRA comparison
+        self.loss_log_file = os.path.join(args.output_dir, "training_loss.jsonl")
+        self.eval_log_file = os.path.join(args.output_dir, "eval_loss.jsonl")
+        # Clear existing files if starting fresh
+        if not resume_from_checkpoint:
+            open(self.loss_log_file, 'w').close()
+            open(self.eval_log_file, 'w').close()
 
         # Activate gradient checkpointing if needed
         if args.gradient_checkpointing:
@@ -643,17 +651,21 @@ class OurTrainer(Trainer):
             self._maybe_log_save_evaluate(tr_loss, model, trial, epoch, ignore_keys_for_eval)
 
             # XGBLoRA: Merge and reinitialize LoRA weights at the end of each boosting iteration
+            # Only do epoch-based merge if step-based merge is not configured
             if hasattr(args, 'xgblora') and args.xgblora and hasattr(self, 'lora_module'):
-                # Check if we should merge at this epoch
-                current_iteration = epoch + 1
-                if hasattr(args, 'xgblora_merge_frequency') and args.xgblora_merge_frequency > 0:
-                    if current_iteration % args.xgblora_merge_frequency == 0:
-                        logger.info(f"XGBLoRA: Merging and reinitializing at iteration {current_iteration}")
+                # Only merge at epoch boundaries if step-based merging is disabled
+                use_step_based = hasattr(args, 'xgblora_steps_per_iteration') and args.xgblora_steps_per_iteration > 0
+                if not use_step_based:
+                    # Epoch-based merging
+                    current_iteration = epoch + 1
+                    if hasattr(args, 'xgblora_merge_frequency') and args.xgblora_merge_frequency > 0:
+                        if current_iteration % args.xgblora_merge_frequency == 0:
+                            logger.info(f"XGBLoRA: Merging and reinitializing at epoch {current_iteration}")
+                            self.lora_module.merge_and_reinit()
+                    else:
+                        # Default: merge at the end of each epoch
+                        logger.info(f"XGBLoRA: Merging and reinitializing at epoch {current_iteration}")
                         self.lora_module.merge_and_reinit()
-                else:
-                    # Default: merge at the end of each epoch
-                    logger.info(f"XGBLoRA: Merging and reinitializing at iteration {current_iteration}")
-                    self.lora_module.merge_and_reinit()
 
             if DebugOption.TPU_METRICS_DEBUG in self.args.debug:
                 if is_torch_tpu_available():
@@ -830,6 +842,46 @@ class OurTrainer(Trainer):
 
     ############## Misc overload functions ##############
 
+    def log(self, logs: Dict[str, float]) -> None:
+        """
+        Override log method to save loss data to separate files for easy retrieval.
+        """
+        # Call parent's log method first
+        super().log(logs)
+        
+        # Save training loss to file
+        if "loss" in logs and hasattr(self, 'loss_log_file'):
+            try:
+                import json
+                loss_entry = {
+                    "step": self.state.global_step,
+                    "loss": float(logs["loss"]),
+                    "epoch": float(logs.get("epoch", 0)),
+                    "learning_rate": float(logs.get("learning_rate", 0))
+                }
+                with open(self.loss_log_file, 'a') as f:
+                    f.write(json.dumps(loss_entry) + '\n')
+            except Exception as e:
+                logger.warning(f"Failed to write training loss to file: {e}")
+        
+        # Save evaluation loss to file  
+        if "eval_loss" in logs and hasattr(self, 'eval_log_file'):
+            try:
+                import json
+                eval_entry = {
+                    "step": self.state.global_step,
+                    "eval_loss": float(logs["eval_loss"]),
+                    "epoch": float(logs.get("epoch", 0))
+                }
+                # Add other eval metrics if present
+                for key in logs:
+                    if key.startswith("eval_") and key != "eval_loss":
+                        eval_entry[key] = float(logs[key])
+                
+                with open(self.eval_log_file, 'a') as f:
+                    f.write(json.dumps(eval_entry) + '\n')
+            except Exception as e:
+                logger.warning(f"Failed to write eval loss to file: {e}")
 
     def _set_signature_columns_if_needed(self):
         """
