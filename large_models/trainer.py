@@ -651,21 +651,17 @@ class OurTrainer(Trainer):
             self._maybe_log_save_evaluate(tr_loss, model, trial, epoch, ignore_keys_for_eval)
 
             # XGBLoRA: Merge and reinitialize LoRA weights at the end of each boosting iteration
-            # Only do epoch-based merge if step-based merge is not configured
             if hasattr(args, 'xgblora') and args.xgblora and hasattr(self, 'lora_module'):
-                # Only merge at epoch boundaries if step-based merging is disabled
-                use_step_based = hasattr(args, 'xgblora_steps_per_iteration') and args.xgblora_steps_per_iteration > 0
-                if not use_step_based:
-                    # Epoch-based merging
-                    current_iteration = epoch + 1
-                    if hasattr(args, 'xgblora_merge_frequency') and args.xgblora_merge_frequency > 0:
-                        if current_iteration % args.xgblora_merge_frequency == 0:
-                            logger.info(f"XGBLoRA: Merging and reinitializing at epoch {current_iteration}")
-                            self.lora_module.merge_and_reinit()
-                    else:
-                        # Default: merge at the end of each epoch
-                        logger.info(f"XGBLoRA: Merging and reinitializing at epoch {current_iteration}")
+                # Check if we should merge at this epoch
+                current_iteration = epoch + 1
+                if hasattr(args, 'xgblora_merge_frequency') and args.xgblora_merge_frequency > 0:
+                    if current_iteration % args.xgblora_merge_frequency == 0:
+                        logger.info(f"XGBLoRA: Merging and reinitializing at iteration {current_iteration}")
                         self.lora_module.merge_and_reinit()
+                else:
+                    # Default: merge at the end of each epoch
+                    logger.info(f"XGBLoRA: Merging and reinitializing at iteration {current_iteration}")
+                    self.lora_module.merge_and_reinit()
 
             if DebugOption.TPU_METRICS_DEBUG in self.args.debug:
                 if is_torch_tpu_available():

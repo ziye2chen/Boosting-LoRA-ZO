@@ -516,8 +516,6 @@ if __name__ == "__main__":
                 str(args.xgblora_steps_per_iteration),
                 "--xgblora_merge_frequency",
                 "1",
-                "--lora_alpha",
-                str(args.lora_alpha),
             ],
         ),
         ExperimentConfig(

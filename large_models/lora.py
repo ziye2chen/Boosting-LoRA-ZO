@@ -113,11 +113,6 @@ class LoRA:
         self.float16 = float16
         self.xgblora = xgblora
         self.lora_modules = []  # Track all LoRA modules for XGBLoRA
-        
-        # Log the actual rank and alpha being used
-        logger.info(f"Initializing LoRA with: r={r}, alpha={alpha}, xgblora={xgblora}")
-        if xgblora and r != 1:
-            logger.warning(f"XGBLoRA should use rank=1, but got r={r}. This may cause unexpected behavior!")
 
         if model.config.model_type == "opt":
             attention_name = "attn"
