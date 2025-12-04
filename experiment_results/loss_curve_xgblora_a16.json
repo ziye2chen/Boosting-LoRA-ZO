@@ -1,1002 +1,1002 @@
 [
   {
     "step": 10,
-    "loss": 6.2064,
+    "loss": 3.1772,
     "time": null
   },
   {
     "step": 20,
-    "loss": 6.1327,
+    "loss": 3.3143,
     "time": null
   },
   {
     "step": 30,
-    "loss": 6.1265,
+    "loss": 3.088,
     "time": null
   },
   {
     "step": 40,
-    "loss": 5.9762,
+    "loss": 3.549,
     "time": null
   },
   {
     "step": 50,
-    "loss": 5.9025,
+    "loss": 3.2552,
     "time": null
   },
   {
     "step": 60,
-    "loss": 5.9425,
+    "loss": 3.1607,
     "time": null
   },
   {
     "step": 70,
-    "loss": 5.6754,
+    "loss": 3.3804,
     "time": null
   },
   {
     "step": 80,
-    "loss": 5.7731,
+    "loss": 3.1541,
     "time": null
   },
   {
     "step": 90,
-    "loss": 5.6089,
+    "loss": 3.1689,
     "time": null
   },
   {
     "step": 100,
-    "loss": 5.3814,
+    "loss": 3.3149,
     "time": null
   },
   {
     "step": 110,
-    "loss": 5.355,
+    "loss": 3.1306,
     "time": null
   },
   {
     "step": 120,
-    "loss": 5.2172,
+    "loss": 2.7033,
     "time": null
   },
   {
     "step": 130,
-    "loss": 5.1121,
+    "loss": 3.1133,
     "time": null
   },
   {
     "step": 140,
-    "loss": 4.9719,
+    "loss": 3.2306,
     "time": null
   },
   {
     "step": 150,
-    "loss": 5.0627,
+    "loss": 3.151,
     "time": null
   },
   {
     "step": 160,
-    "loss": 4.9941,
+    "loss": 3.0402,
     "time": null
   },
   {
     "step": 170,
-    "loss": 5.0667,
+    "loss": 2.8026,
     "time": null
   },
   {
     "step": 180,
-    "loss": 5.0453,
+    "loss": 3.0888,
     "time": null
   },
   {
     "step": 190,
-    "loss": 4.9784,
+    "loss": 3.0911,
     "time": null
   },
   {
     "step": 200,
-    "loss": 4.9859,
+    "loss": 3.0114,
     "time": null
   },
   {
     "step": 210,
-    "loss": 4.5522,
+    "loss": 2.9266,
     "time": null
   },
   {
     "step": 220,
-    "loss": 4.5076,
+    "loss": 2.7878,
     "time": null
   },
   {
     "step": 230,
-    "loss": 4.6143,
+    "loss": 3.0099,
     "time": null
   },
   {
     "step": 240,
-    "loss": 4.5391,
+    "loss": 3.1627,
     "time": null
   },
   {
     "step": 250,
-    "loss": 4.3315,
+    "loss": 2.8801,
     "time": null
   },
   {
     "step": 260,
-    "loss": 4.1272,
+    "loss": 3.0562,
     "time": null
   },
   {
     "step": 270,
-    "loss": 4.5069,
+    "loss": 2.7116,
     "time": null
   },
   {
     "step": 280,
-    "loss": 4.4047,
+    "loss": 2.6931,
     "time": null
   },
   {
     "step": 290,
-    "loss": 4.201,
+    "loss": 2.8651,
     "time": null
   },
   {
     "step": 300,
-    "loss": 4.3317,
+    "loss": 2.8244,
     "time": null
   },
   {
     "step": 310,
-    "loss": 4.1653,
+    "loss": 2.9133,
     "time": null
   },
   {
     "step": 320,
-    "loss": 3.9479,
+    "loss": 2.9115,
     "time": null
   },
   {
     "step": 330,
-    "loss": 3.9331,
+    "loss": 3.0175,
     "time": null
   },
   {
     "step": 340,
-    "loss": 4.1335,
+    "loss": 2.6566,
     "time": null
   },
   {
     "step": 350,
-    "loss": 3.9562,
+    "loss": 2.9483,
     "time": null
   },
   {
     "step": 360,
-    "loss": 3.8992,
+    "loss": 2.7743,
     "time": null
   },
   {
     "step": 370,
-    "loss": 3.7798,
+    "loss": 3.0975,
     "time": null
   },
   {
     "step": 380,
-    "loss": 3.8421,
+    "loss": 2.753,
     "time": null
   },
   {
     "step": 390,
-    "loss": 3.8303,
+    "loss": 2.5622,
     "time": null
   },
   {
     "step": 400,
-    "loss": 3.7339,
+    "loss": 2.834,
     "time": null
   },
   {
     "step": 410,
-    "loss": 3.6731,
+    "loss": 2.8356,
     "time": null
   },
   {
     "step": 420,
-    "loss": 3.6624,
+    "loss": 2.8594,
     "time": null
   },
   {
     "step": 430,
-    "loss": 3.7386,
+    "loss": 2.9245,
     "time": null
   },
   {
     "step": 440,
-    "loss": 3.5491,
+    "loss": 2.9238,
     "time": null
   },
   {
     "step": 450,
-    "loss": 3.5288,
+    "loss": 2.4918,
     "time": null
   },
   {
     "step": 460,
-    "loss": 3.4981,
+    "loss": 2.787,
     "time": null
   },
   {
     "step": 470,
-    "loss": 3.468,
+    "loss": 2.6201,
     "time": null
   },
   {
     "step": 480,
-    "loss": 3.4376,
+    "loss": 2.5043,
     "time": null
   },
   {
     "step": 490,
-    "loss": 3.5172,
+    "loss": 2.6899,
     "time": null
   },
   {
     "step": 500,
-    "loss": 3.4269,
+    "loss": 2.7737,
     "time": null
   },
   {
     "step": 510,
-    "loss": 3.5149,
+    "loss": 2.8811,
     "time": null
   },
   {
     "step": 520,
-    "loss": 3.3625,
+    "loss": 2.7547,
     "time": null
   },
   {
     "step": 530,
-    "loss": 3.3534,
+    "loss": 2.5574,
     "time": null
   },
   {
     "step": 540,
-    "loss": 3.4066,
+    "loss": 2.7838,
     "time": null
   },
   {
     "step": 550,
-    "loss": 3.3276,
+    "loss": 2.7284,
     "time": null
   },
   {
     "step": 560,
-    "loss": 3.1915,
+    "loss": 2.7915,
     "time": null
   },
   {
     "step": 570,
-    "loss": 3.1454,
+    "loss": 2.4705,
     "time": null
   },
   {
     "step": 580,
-    "loss": 3.0459,
+    "loss": 2.5864,
     "time": null
   },
   {
     "step": 590,
-    "loss": 3.0609,
+    "loss": 2.5404,
     "time": null
   },
   {
     "step": 600,
-    "loss": 3.1938,
+    "loss": 2.7481,
     "time": null
   },
   {
     "step": 610,
-    "loss": 3.1189,
+    "loss": 3.027,
     "time": null
   },
   {
     "step": 620,
-    "loss": 3.0176,
+    "loss": 2.3807,
     "time": null
   },
   {
     "step": 630,
-    "loss": 2.8985,
+    "loss": 2.4035,
     "time": null
   },
   {
     "step": 640,
-    "loss": 2.9761,
+    "loss": 2.9604,
     "time": null
   },
   {
     "step": 650,
-    "loss": 2.9551,
+    "loss": 2.5701,
     "time": null
   },
   {
     "step": 660,
-    "loss": 3.0502,
+    "loss": 2.71,
     "time": null
   },
   {
     "step": 670,
-    "loss": 3.0711,
+    "loss": 2.721,
     "time": null
   },
   {
     "step": 680,
-    "loss": 2.8396,
+    "loss": 2.6691,
     "time": null
   },
   {
     "step": 690,
-    "loss": 2.9026,
+    "loss": 2.6337,
     "time": null
   },
   {
     "step": 700,
-    "loss": 2.7691,
+    "loss": 2.5675,
     "time": null
   },
   {
     "step": 710,
-    "loss": 2.8436,
+    "loss": 2.7569,
     "time": null
   },
   {
     "step": 720,
-    "loss": 2.8581,
+    "loss": 2.6061,
     "time": null
   },
   {
     "step": 730,
-    "loss": 2.9502,
+    "loss": 2.4275,
     "time": null
   },
   {
     "step": 740,
-    "loss": 2.8261,
+    "loss": 2.7356,
     "time": null
   },
   {
     "step": 750,
-    "loss": 2.6648,
+    "loss": 2.4146,
     "time": null
   },
   {
     "step": 760,
-    "loss": 2.822,
+    "loss": 2.5093,
     "time": null
   },
   {
     "step": 770,
-    "loss": 2.8638,
+    "loss": 2.7115,
     "time": null
   },
   {
     "step": 780,
-    "loss": 2.6716,
+    "loss": 2.742,
     "time": null
   },
   {
     "step": 790,
-    "loss": 2.5208,
+    "loss": 2.611,
     "time": null
   },
   {
     "step": 800,
-    "loss": 2.7351,
+    "loss": 2.5757,
     "time": null
   },
   {
     "step": 810,
-    "loss": 2.7396,
+    "loss": 2.6576,
     "time": null
   },
   {
     "step": 820,
-    "loss": 2.4361,
+    "loss": 2.5116,
     "time": null
   },
   {
     "step": 830,
-    "loss": 2.6355,
+    "loss": 2.4675,
     "time": null
   },
   {
     "step": 840,
-    "loss": 2.5918,
+    "loss": 2.5989,
     "time": null
   },
   {
     "step": 850,
-    "loss": 2.5603,
+    "loss": 2.7387,
     "time": null
   },
   {
     "step": 860,
-    "loss": 2.6323,
+    "loss": 2.513,
     "time": null
   },
   {
     "step": 870,
-    "loss": 2.4397,
+    "loss": 2.4074,
     "time": null
   },
   {
     "step": 880,
-    "loss": 2.4919,
+    "loss": 2.6536,
     "time": null
   },
   {
     "step": 890,
-    "loss": 2.3538,
+    "loss": 2.6739,
     "time": null
   },
   {
     "step": 900,
-    "loss": 2.365,
+    "loss": 2.4346,
     "time": null
   },
   {
     "step": 910,
-    "loss": 2.5442,
+    "loss": 2.7179,
     "time": null
   },
   {
     "step": 920,
-    "loss": 2.5532,
+    "loss": 2.3409,
     "time": null
   },
   {
     "step": 930,
-    "loss": 2.3379,
+    "loss": 2.522,
     "time": null
   },
   {
     "step": 940,
-    "loss": 2.4429,
+    "loss": 2.4267,
     "time": null
   },
   {
     "step": 950,
-    "loss": 2.3583,
+    "loss": 2.52,
     "time": null
   },
   {
     "step": 960,
-    "loss": 2.4372,
+    "loss": 2.6928,
     "time": null
   },
   {
     "step": 970,
-    "loss": 2.3974,
+    "loss": 2.8226,
     "time": null
   },
   {
     "step": 980,
-    "loss": 2.4243,
+    "loss": 2.47,
     "time": null
   },
   {
     "step": 990,
-    "loss": 2.407,
+    "loss": 2.4898,
     "time": null
   },
   {
     "step": 1000,
-    "loss": 2.3178,
+    "loss": 2.3928,
     "time": null
   },
   {
     "step": 1010,
-    "loss": 2.1785,
+    "loss": 2.397,
     "time": null
   },
   {
     "step": 1020,
-    "loss": 2.3147,
+    "loss": 2.5904,
     "time": null
   },
   {
     "step": 1030,
-    "loss": 2.2766,
+    "loss": 2.5142,
     "time": null
   },
   {
     "step": 1040,
-    "loss": 2.3254,
+    "loss": 2.298,
     "time": null
   },
   {
     "step": 1050,
-    "loss": 2.3533,
+    "loss": 2.1755,
     "time": null
   },
   {
     "step": 1060,
-    "loss": 2.3015,
+    "loss": 2.5452,
     "time": null
   },
   {
     "step": 1070,
-    "loss": 2.1693,
+    "loss": 2.5627,
     "time": null
   },
   {
     "step": 1080,
-    "loss": 2.1798,
+    "loss": 2.7453,
     "time": null
   },
   {
     "step": 1090,
-    "loss": 2.3108,
+    "loss": 2.6435,
     "time": null
   },
   {
     "step": 1100,
-    "loss": 2.1176,
+    "loss": 2.6704,
     "time": null
   },
   {
     "step": 1110,
-    "loss": 2.2765,
+    "loss": 2.4506,
     "time": null
   },
   {
     "step": 1120,
-    "loss": 2.1974,
+    "loss": 2.3254,
     "time": null
   },
   {
     "step": 1130,
-    "loss": 2.1831,
+    "loss": 2.9523,
     "time": null
   },
   {
     "step": 1140,
-    "loss": 2.277,
+    "loss": 2.2988,
     "time": null
   },
   {
     "step": 1150,
-    "loss": 2.1799,
+    "loss": 2.7278,
     "time": null
   },
   {
     "step": 1160,
-    "loss": 2.1081,
+    "loss": 2.8256,
     "time": null
   },
   {
     "step": 1170,
-    "loss": 2.1562,
+    "loss": 2.5633,
     "time": null
   },
   {
     "step": 1180,
-    "loss": 2.0145,
+    "loss": 2.4586,
     "time": null
   },
   {
     "step": 1190,
-    "loss": 2.1851,
+    "loss": 2.3979,
     "time": null
   },
   {
     "step": 1200,
-    "loss": 2.2166,
+    "loss": 2.482,
     "time": null
   },
   {
     "step": 1210,
-    "loss": 1.9811,
+    "loss": 2.3613,
     "time": null
   },
   {
     "step": 1220,
-    "loss": 2.0874,
+    "loss": 2.3966,
     "time": null
   },
   {
     "step": 1230,
-    "loss": 2.0429,
+    "loss": 2.4754,
     "time": null
   },
   {
     "step": 1240,
-    "loss": 2.1783,
+    "loss": 2.3737,
     "time": null
   },
   {
     "step": 1250,
-    "loss": 2.0821,
+    "loss": 2.2186,
     "time": null
   },
   {
     "step": 1260,
-    "loss": 2.0973,
+    "loss": 2.5725,
     "time": null
   },
   {
     "step": 1270,
-    "loss": 2.0517,
+    "loss": 2.2964,
     "time": null
   },
   {
     "step": 1280,
-    "loss": 2.1458,
+    "loss": 2.4883,
     "time": null
   },
   {
     "step": 1290,
-    "loss": 2.0485,
+    "loss": 2.6437,
     "time": null
   },
   {
     "step": 1300,
-    "loss": 2.0939,
+    "loss": 2.5152,
     "time": null
   },
   {
     "step": 1310,
-    "loss": 1.8473,
+    "loss": 2.5321,
     "time": null
   },
   {
     "step": 1320,
-    "loss": 2.0066,
+    "loss": 2.2678,
     "time": null
   },
   {
     "step": 1330,
-    "loss": 1.9678,
+    "loss": 2.5185,
     "time": null
   },
   {
     "step": 1340,
-    "loss": 2.0013,
+    "loss": 2.6076,
     "time": null
   },
   {
     "step": 1350,
-    "loss": 2.0335,
+    "loss": 2.26,
     "time": null
   },
   {
     "step": 1360,
-    "loss": 1.9565,
+    "loss": 2.3768,
     "time": null
   },
   {
     "step": 1370,
-    "loss": 1.9559,
+    "loss": 2.5373,
     "time": null
   },
   {
     "step": 1380,
-    "loss": 1.9233,
+    "loss": 2.421,
     "time": null
   },
   {
     "step": 1390,
-    "loss": 1.8871,
+    "loss": 2.4492,
     "time": null
   },
   {
     "step": 1400,
-    "loss": 1.952,
+    "loss": 2.529,
     "time": null
   },
   {
     "step": 1410,
-    "loss": 2.0248,
+    "loss": 2.3304,
     "time": null
   },
   {
     "step": 1420,
-    "loss": 1.924,
+    "loss": 2.4699,
     "time": null
   },
   {
     "step": 1430,
-    "loss": 1.8722,
+    "loss": 2.1413,
     "time": null
   },
   {
     "step": 1440,
-    "loss": 1.9397,
+    "loss": 2.5872,
     "time": null
   },
   {
     "step": 1450,
-    "loss": 1.9623,
+    "loss": 2.4217,
     "time": null
   },
   {
     "step": 1460,
-    "loss": 1.7995,
+    "loss": 2.5478,
     "time": null
   },
   {
     "step": 1470,
-    "loss": 1.9346,
+    "loss": 2.5095,
     "time": null
   },
   {
     "step": 1480,
-    "loss": 1.859,
+    "loss": 2.2723,
     "time": null
   },
   {
     "step": 1490,
-    "loss": 1.8042,
+    "loss": 2.6747,
     "time": null
   },
   {
     "step": 1500,
-    "loss": 1.9395,
+    "loss": 2.3201,
     "time": null
   },
   {
     "step": 1510,
-    "loss": 1.8426,
+    "loss": 2.4658,
     "time": null
   },
   {
     "step": 1520,
-    "loss": 1.7659,
+    "loss": 2.5663,
     "time": null
   },
   {
     "step": 1530,
-    "loss": 1.797,
+    "loss": 2.7259,
     "time": null
   },
   {
     "step": 1540,
-    "loss": 1.7894,
+    "loss": 2.3226,
     "time": null
   },
   {
     "step": 1550,
-    "loss": 1.7899,
+    "loss": 2.425,
     "time": null
   },
   {
     "step": 1560,
-    "loss": 1.9698,
+    "loss": 2.4312,
     "time": null
   },
   {
     "step": 1570,
-    "loss": 1.8788,
+    "loss": 2.3732,
     "time": null
   },
   {
     "step": 1580,
-    "loss": 1.7458,
+    "loss": 2.1319,
     "time": null
   },
   {
     "step": 1590,
-    "loss": 1.812,
+    "loss": 2.6731,
     "time": null
   },
   {
     "step": 1600,
-    "loss": 1.8441,
+    "loss": 2.4943,
     "time": null
   },
   {
     "step": 1610,
-    "loss": 1.6949,
+    "loss": 2.3525,
     "time": null
   },
   {
     "step": 1620,
-    "loss": 1.8109,
+    "loss": 2.6091,
     "time": null
   },
   {
     "step": 1630,
-    "loss": 1.8322,
+    "loss": 2.3048,
     "time": null
   },
   {
     "step": 1640,
-    "loss": 1.7686,
+    "loss": 2.409,
     "time": null
   },
   {
     "step": 1650,
-    "loss": 1.6663,
+    "loss": 2.6592,
     "time": null
   },
   {
     "step": 1660,
-    "loss": 1.7972,
+    "loss": 2.6621,
     "time": null
   },
   {
     "step": 1670,
-    "loss": 1.7912,
+    "loss": 2.4538,
     "time": null
   },
   {
     "step": 1680,
-    "loss": 1.8221,
+    "loss": 2.3252,
     "time": null
   },
   {
     "step": 1690,
-    "loss": 1.7499,
+    "loss": 2.3692,
     "time": null
   },
   {
     "step": 1700,
-    "loss": 1.714,
+    "loss": 2.2541,
     "time": null
   },
   {
     "step": 1710,
-    "loss": 1.8093,
+    "loss": 2.6411,
     "time": null
   },
   {
     "step": 1720,
-    "loss": 1.7316,
+    "loss": 2.5136,
     "time": null
   },
   {
     "step": 1730,
-    "loss": 1.8416,
+    "loss": 2.0852,
     "time": null
   },
   {
     "step": 1740,
-    "loss": 1.5994,
+    "loss": 2.4559,
     "time": null
   },
   {
     "step": 1750,
-    "loss": 1.7331,
+    "loss": 2.4342,
     "time": null
   },
   {
     "step": 1760,
-    "loss": 1.7448,
+    "loss": 2.5519,
     "time": null
   },
   {
     "step": 1770,
-    "loss": 1.7954,
+    "loss": 2.3852,
     "time": null
   },
   {
     "step": 1780,
-    "loss": 1.6853,
+    "loss": 2.4511,
     "time": null
   },
   {
     "step": 1790,
-    "loss": 1.7448,
+    "loss": 2.3095,
     "time": null
   },
   {
     "step": 1800,
-    "loss": 1.8212,
+    "loss": 2.4407,
     "time": null
   },
   {
     "step": 1810,
-    "loss": 1.6581,
+    "loss": 2.574,
     "time": null
   },
   {
     "step": 1820,
-    "loss": 1.6404,
+    "loss": 2.6007,
     "time": null
   },
   {
     "step": 1830,
-    "loss": 1.7119,
+    "loss": 2.3922,
     "time": null
   },
   {
     "step": 1840,
-    "loss": 1.6583,
+    "loss": 2.258,
     "time": null
   },
   {
     "step": 1850,
-    "loss": 1.6986,
+    "loss": 2.1083,
     "time": null
   },
   {
     "step": 1860,
-    "loss": 1.7505,
+    "loss": 2.6078,
     "time": null
   },
   {
     "step": 1870,
-    "loss": 1.6904,
+    "loss": 2.5184,
     "time": null
   },
   {
     "step": 1880,
-    "loss": 1.7338,
+    "loss": 2.2543,
     "time": null
   },
   {
     "step": 1890,
-    "loss": 1.7728,
+    "loss": 2.4602,
     "time": null
   },
   {
     "step": 1900,
-    "loss": 1.7934,
+    "loss": 2.4008,
     "time": null
   },
   {
     "step": 1910,
-    "loss": 1.7468,
+    "loss": 2.7109,
     "time": null
   },
   {
     "step": 1920,
-    "loss": 1.7854,
+    "loss": 2.4288,
     "time": null
   },
   {
     "step": 1930,
-    "loss": 1.5701,
+    "loss": 2.5324,
     "time": null
   },
   {
     "step": 1940,
-    "loss": 1.622,
+    "loss": 2.0989,
     "time": null
   },
   {
     "step": 1950,
-    "loss": 1.6848,
+    "loss": 2.3452,
     "time": null
   },
   {
     "step": 1960,
-    "loss": 1.7739,
+    "loss": 2.3102,
     "time": null
   },
   {
     "step": 1970,
-    "loss": 1.7081,
+    "loss": 2.3635,
     "time": null
   },
   {
     "step": 1980,
-    "loss": 1.7381,
+    "loss": 2.7502,
     "time": null
   },
   {
     "step": 1990,
-    "loss": 1.6304,
+    "loss": 2.6114,
     "time": null
   },
   {
     "step": 2000,
-    "loss": 1.695,
+    "loss": 2.2602,
     "time": null
   }
 ]

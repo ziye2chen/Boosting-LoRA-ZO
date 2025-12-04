@@ -210,9 +210,115 @@ SCHEDULER_NAME = "scheduler.pt"
 SCALER_NAME = "scaler.pt"
 
 
+class LossRecorder:
+    """
+    Tracks per-step losses, saves them to disk, and prints/saves a curve plot.
+    """
+
+    def __init__(self, base_dir: Path):
+        self.base_dir = Path(base_dir)
+        self.log_path = self.base_dir / "step_loss.csv"
+        self.plot_path = self.base_dir / "step_loss.png"
+        self.points: List[Tuple[int, float]] = []
+        self._initialize_log()
+
+    def _initialize_log(self):
+        try:
+            self.base_dir.mkdir(parents=True, exist_ok=True)
+            with open(self.log_path, "w", encoding="utf-8") as sink:
+                sink.write("step,loss\n")
+        except OSError as exc:
+            logger.warning(f"Could not prepare loss log file: {exc}")
+
+    def log_loss(self, step: Optional[int], loss: Optional[float]):
+        if loss is None:
+            return
+        try:
+            loss_value = float(loss)
+        except (TypeError, ValueError):
+            return
+        step_value = int(step) if step is not None else len(self.points)
+        self.points.append((step_value, loss_value))
+        try:
+            with open(self.log_path, "a", encoding="utf-8") as sink:
+                sink.write(f"{step_value},{loss_value:.8f}\n")
+        except OSError as exc:
+            logger.warning(f"Could not append to loss log file: {exc}")
+
+    def finalize(self):
+        if not self.points:
+            return
+        self._save_plot_if_possible()
+        self._print_ascii_plot()
+
+    def _save_plot_if_possible(self):
+        try:
+            import matplotlib.pyplot as plt  # type: ignore
+        except Exception as exc:  # pragma: no cover - best effort plotting
+            logger.info(f"matplotlib is unavailable, skipping PNG plot generation: {exc}")
+            return
+
+        steps, losses = zip(*self.points)
+        plt.figure(figsize=(8, 4.5))
+        plt.plot(steps, losses, marker="o", linewidth=1.0, markersize=2)
+        plt.xlabel("Steps")
+        plt.ylabel("Loss")
+        plt.title("Training loss per step")
+        plt.grid(True, linestyle="--", alpha=0.3)
+        plt.tight_layout()
+        try:
+            plt.savefig(self.plot_path)
+            print(f"[LossRecorder] Saved loss curve to {self.plot_path}")
+        except OSError as exc:
+            logger.warning(f"Could not save loss plot: {exc}")
+        finally:
+            plt.close()
+
+    def _print_ascii_plot(self, width: int = 70, height: int = 15):
+        """
+        Print a lightweight ASCII curve so the loss trend is visible in the terminal.
+        """
+        samples = self._downsample_points(width)
+        steps, losses = zip(*samples)
+        min_loss = min(losses)
+        max_loss = max(losses)
+        if math.isclose(max_loss, min_loss):
+            max_loss += 1e-6
+        loss_span = max_loss - min_loss
+        grid = [[" " for _ in range(len(samples))] for _ in range(height)]
+        for idx, (_, loss) in enumerate(samples):
+            col = idx
+            row = int((loss - min_loss) / loss_span * (height - 1))
+            row = min(height - 1, max(0, row))
+            grid[height - 1 - row][col] = "*"
+
+        print("\n[LossRecorder] Loss vs. Steps (ASCII plot)")
+        for line in grid:
+            print("".join(line))
+        print("-" * len(samples))
+        print(f"steps {steps[0]} -> {steps[-1]}")
+        print(f"loss  {min_loss:.4f} -> {max_loss:.4f}\n")
+
+    def _downsample_points(self, target_width: int) -> List[Tuple[int, float]]:
+        if len(self.points) <= target_width or target_width < 2:
+            return list(self.points)
+        step = (len(self.points) - 1) / (target_width - 1)
+        indices = sorted({int(round(i * step)) for i in range(target_width)})
+        indices[-1] = len(self.points) - 1
+        return [self.points[i] for i in indices]
+
+
 class OurTrainer(Trainer):
 
     from transformers.trainer_pt_utils import _get_learning_rate, log_metrics, metrics_format, save_metrics, save_state
+
+    def __init__(self, *trainer_init_args, **trainer_init_kwargs):
+        super().__init__(*trainer_init_args, **trainer_init_kwargs)
+        try:
+            base_dir = Path(__file__).resolve().parent
+        except Exception:
+            base_dir = Path(".")
+        self.loss_recorder = LossRecorder(base_dir)
 
     def _inner_training_loop(
         self, batch_size=None, args=None, resume_from_checkpoint=None, trial=None, ignore_keys_for_eval=None
@@ -367,21 +473,6 @@ class OurTrainer(Trainer):
 
         self.state = TrainerState()
         self.state.is_hyper_param_search = trial is not None
-        
-        # Initialize loss tracking file for XGBLoRA comparison
-        self.loss_log_file = os.path.join(args.output_dir, "training_loss.jsonl")
-        self.eval_log_file = os.path.join(args.output_dir, "eval_loss.jsonl")
-        # Clear existing files if starting fresh
-        if not resume_from_checkpoint:
-            open(self.loss_log_file, 'w').close()
-            open(self.eval_log_file, 'w').close()
-        
-        # Keep file handles open for efficient writing
-        self._loss_file_handle = None
-        self._eval_file_handle = None
-        self._log_buffer_size = 10  # Flush every N writes
-        self._loss_write_count = 0
-        self._eval_write_count = 0
 
         # Activate gradient checkpointing if needed
         if args.gradient_checkpointing:
@@ -633,13 +724,6 @@ class OurTrainer(Trainer):
                     self.state.epoch = epoch + (step + 1) / steps_in_epoch
                     self.control = self.callback_handler.on_step_end(args, self.state, self.control)
 
-                    # XGBLoRA: Merge and reinitialize LoRA weights at specific step intervals
-                    if hasattr(args, 'xgblora') and args.xgblora and hasattr(self, 'lora_module'):
-                        if hasattr(args, 'xgblora_steps_per_iteration') and args.xgblora_steps_per_iteration > 0:
-                            if self.state.global_step % args.xgblora_steps_per_iteration == 0:
-                                logger.info(f"XGBLoRA: Merging and reinitializing at step {self.state.global_step}")
-                                self.lora_module.merge_and_reinit()
-
                     self._maybe_log_save_evaluate(tr_loss, model, trial, epoch, ignore_keys_for_eval)
                 else:
                     self.control = self.callback_handler.on_substep_end(args, self.state, self.control)
@@ -656,19 +740,6 @@ class OurTrainer(Trainer):
 
             self.control = self.callback_handler.on_epoch_end(args, self.state, self.control)
             self._maybe_log_save_evaluate(tr_loss, model, trial, epoch, ignore_keys_for_eval)
-
-            # XGBLoRA: Merge and reinitialize LoRA weights at the end of each boosting iteration
-            if hasattr(args, 'xgblora') and args.xgblora and hasattr(self, 'lora_module'):
-                # Check if we should merge at this epoch
-                current_iteration = epoch + 1
-                if hasattr(args, 'xgblora_merge_frequency') and args.xgblora_merge_frequency > 0:
-                    if current_iteration % args.xgblora_merge_frequency == 0:
-                        logger.info(f"XGBLoRA: Merging and reinitializing at iteration {current_iteration}")
-                        self.lora_module.merge_and_reinit()
-                else:
-                    # Default: merge at the end of each epoch
-                    logger.info(f"XGBLoRA: Merging and reinitializing at iteration {current_iteration}")
-                    self.lora_module.merge_and_reinit()
 
             if DebugOption.TPU_METRICS_DEBUG in self.args.debug:
                 if is_torch_tpu_available():
@@ -713,6 +784,9 @@ class OurTrainer(Trainer):
 
         self.log(metrics)
 
+        if self.is_world_process_zero() and getattr(self, "loss_recorder", None):
+            self.loss_recorder.finalize()
+
         run_dir = self._get_output_dir(trial)
         checkpoints_sorted = self._sorted_checkpoints(use_mtime=False, output_dir=run_dir)
 
@@ -725,24 +799,20 @@ class OurTrainer(Trainer):
 
         self.control = self.callback_handler.on_train_end(args, self.state, self.control)
 
-        # Close log file handles if open
-        if hasattr(self, '_loss_file_handle') and self._loss_file_handle is not None:
-            try:
-                self._loss_file_handle.flush()
-                self._loss_file_handle.close()
-                self._loss_file_handle = None
-            except:
-                pass
-
-        if hasattr(self, '_eval_file_handle') and self._eval_file_handle is not None:
-            try:
-                self._eval_file_handle.flush()
-                self._eval_file_handle.close()
-                self._eval_file_handle = None
-            except:
-                pass
-
         return TrainOutput(self.state.global_step, train_loss, metrics)
+
+    def log(self, logs: Dict[str, float]) -> None:
+        """
+        Hook into Hugging Face logging to capture per-step loss values.
+        """
+        if (
+            hasattr(self, "loss_recorder")
+            and self.loss_recorder is not None
+            and "loss" in logs
+            and self.is_world_process_zero()
+        ):
+            self.loss_recorder.log_loss(self.state.global_step, logs.get("loss"))
+        super().log(logs)
 
 
     ############## MeZO ##############
@@ -862,65 +932,6 @@ class OurTrainer(Trainer):
 
     ############## Misc overload functions ##############
 
-    def log(self, logs: Dict[str, float]) -> None:
-        """
-        Override log method to save loss data to separate files for easy retrieval.
-        Optimized version with persistent file handles and periodic flushing.
-        """
-        # Call parent's log method first
-        super().log(logs)
-        
-        # Save training loss to file
-        if "loss" in logs and hasattr(self, 'loss_log_file'):
-            try:
-                import json
-                # Open file handle if not already open
-                if self._loss_file_handle is None:
-                    self._loss_file_handle = open(self.loss_log_file, 'a', buffering=8192)
-                
-                loss_entry = {
-                    "step": self.state.global_step,
-                    "loss": float(logs["loss"]),
-                    "epoch": float(logs.get("epoch", 0)),
-                    "learning_rate": float(logs.get("learning_rate", 0))
-                }
-                self._loss_file_handle.write(json.dumps(loss_entry) + '\n')
-                self._loss_write_count += 1
-                
-                # Flush periodically for safety
-                if self._loss_write_count >= self._log_buffer_size:
-                    self._loss_file_handle.flush()
-                    self._loss_write_count = 0
-            except Exception as e:
-                logger.warning(f"Failed to write training loss to file: {e}")
-        
-        # Save evaluation loss to file  
-        if "eval_loss" in logs and hasattr(self, 'eval_log_file'):
-            try:
-                import json
-                # Open file handle if not already open
-                if self._eval_file_handle is None:
-                    self._eval_file_handle = open(self.eval_log_file, 'a', buffering=8192)
-                
-                eval_entry = {
-                    "step": self.state.global_step,
-                    "eval_loss": float(logs["eval_loss"]),
-                    "epoch": float(logs.get("epoch", 0))
-                }
-                # Add other eval metrics if present
-                for key in logs:
-                    if key.startswith("eval_") and key != "eval_loss":
-                        eval_entry[key] = float(logs[key])
-                
-                self._eval_file_handle.write(json.dumps(eval_entry) + '\n')
-                self._eval_write_count += 1
-                
-                # Flush periodically
-                if self._eval_write_count >= self._log_buffer_size:
-                    self._eval_file_handle.flush()
-                    self._eval_write_count = 0
-            except Exception as e:
-                logger.warning(f"Failed to write eval loss to file: {e}")
 
     def _set_signature_columns_if_needed(self):
         """

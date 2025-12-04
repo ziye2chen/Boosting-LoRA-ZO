@@ -40,24 +40,19 @@ def main():
     # =========================
 
     # 1. XGBLoRA + ZO, alpha = 16 (JSON)
-    boosting_json = base_dir / "step_loss_boosting_a16_10.json"
+    zo_r1_json = base_dir / "loss_curve_lora_zo_r1_a16.json"
+    zo_r1_steps, zo_r1_losses = load_json_step_loss(zo_r1_json)
+
+    # 2. LoRA + ZO, rank = 1, alpha = 16 (CSV)
+    zo_r8_csv = base_dir / "step_loss_lora_zo_r8_a16.csv"
+    zo_r8_steps, zo_r8_losses = load_csv_step_loss(zo_r8_csv)
+    # zo_r1_json = base_dir / "loss_curve_lora_zo_r1_a16.json"
+    # zo_r1_steps, zo_r1_losses = load_json_step_loss(zo_r1_json)
+
+    boosting_json = base_dir / "loss_curve_xgblora_a16.json"
     boosting_steps, boosting_losses = load_json_step_loss(boosting_json)
 
-    # 1. XGBLoRA + ZO, alpha = 16 (JSON)
-    boosting_json_2 = base_dir / "step_loss_boosting_a16_100.json"
-    boosting_steps_2, boosting_losses_2 = load_json_step_loss(boosting_json_2)
 
-    # 1. XGBLoRA + ZO, alpha = 16 (JSON)
-    boosting_json_3 = base_dir / "step_loss_boosting_a16_300.json"
-    boosting_steps_3, boosting_losses_3 = load_json_step_loss(boosting_json_3)
-
-    # 1. XGBLoRA + ZO, alpha = 16 (JSON)
-    boosting_json_4 = base_dir / "step_loss_boosting_a16_500.json"
-    boosting_steps_4, boosting_losses_4 = load_json_step_loss(boosting_json_4)
-
-    # 1. XGBLoRA + ZO, alpha = 16 (JSON)
-    boosting_json_5 = base_dir / "step_loss_boosting_a16_2000.json"
-    boosting_steps_5, boosting_losses_5 = load_json_step_loss(boosting_json_5)
 
 
     plt.figure(figsize=(10, 5))
@@ -65,35 +60,21 @@ def main():
     plt.plot(
         boosting_steps,
         boosting_losses,
-        label="XGBLoRA + ZO (α=16, 10 steps merge)",
+        label="XGBLoRA + ZO (α=16, 100 steps merge)",
         linewidth=2,
     )
     
     plt.plot(
-        boosting_steps_2,
-        boosting_losses_2,
-        label="XGBLoRA + ZO (α=16, 100 steps merge)",
+        zo_r1_steps,
+        zo_r1_losses,
+        label="LoRA + ZO (rank=1, α=16)",
         linewidth=2,
     )
 
     plt.plot(
-        boosting_steps_3,
-        boosting_losses_3,
-        label="XGBLoRA + ZO (α=16, 300 steps merge)",
-        linewidth=2,
-    )
-
-    plt.plot(
-        boosting_steps_4,
-        boosting_losses_4,
-        label="XGBLoRA + ZO (α=16, 500 steps merge)",
-        linewidth=2,
-    )
-
-    plt.plot(
-        boosting_steps_5,
-        boosting_losses_5,
-        label="XGBLoRA + ZO (α=16, 2000 steps merge)",
+        zo_r8_steps,
+        zo_r8_losses,
+        label="LoRA + ZO (rank=8, α=16)",
         linewidth=2,
     )
 
@@ -104,14 +85,11 @@ def main():
     # Vertical red lines every 100 steps
     max_step = max(
         boosting_steps[-1],
-        boosting_steps_2[-1],
+        zo_r1_steps[-1],
+        zo_r8_steps[-1],
     )
     \
-    plt.axvline(x=10, color="blue", linestyle="--", linewidth=0.8, alpha=0.6)
-    plt.axvline(x=100, color="orange", linestyle="--", linewidth=0.8, alpha=0.6)
-    plt.axvline(x=300, color="green", linestyle="--", linewidth=0.8, alpha=0.6)
-    plt.axvline(x=500, color="red", linestyle="--", linewidth=0.8, alpha=0.6)
-    plt.axvline(x=2000, color="purple", linestyle="--", linewidth=0.8, alpha=0.6)
+    plt.axvline(x=200, color="blue", linestyle="--", linewidth=0.8, alpha=0.6)
     # for step in range(100, max_step + 1, 100):
     #     plt.axvline(x=step, color="red", linestyle="--", linewidth=0.8, alpha=0.6)
     # for step in range(500, max_step + 1, 100):
@@ -129,44 +107,38 @@ def main():
     # =========================
 
     # Metrics JSON files
-    metrics_boosting = base_dir / "metrics_boosting_a16_10.json"
-    metrics_boosting_2 = base_dir / "metrics_boosting_a16_100.json"
-    metrics_boosting_3 = base_dir / "metrics_boosting_a16_300.json"
-    metrics_boosting_4 = base_dir / "metrics_boosting_a16_500.json"
-    metrics_boosting_5 = base_dir / "metrics_boosting_a16_2000.json"
+    # metrics_boosting = base_dir / "metrics_xgblora_a16_2.json"
+    # metrics_zo_r1 = base_dir / "metrics_lora_zo_r1_a16_2.json"
+    # metrics_zo_r8 = base_dir / "metrics_lora_zo_r8_a16_2.json"
 
-    def load_accuracy(path: Path) -> float:
-        with path.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-        return float(data["accuracy"])
+    # def load_accuracy(path: Path) -> float:
+    #     with path.open("r", encoding="utf-8") as f:
+    #         data = json.load(f)
+    #     return float(data["accuracy"])
 
-    accuracies = [
-        load_accuracy(metrics_boosting),
-        load_accuracy(metrics_boosting_2),
-        load_accuracy(metrics_boosting_3),
-        load_accuracy(metrics_boosting_4),
-        load_accuracy(metrics_boosting_5),
-    ]
+    # accuracies = [
+    #     load_accuracy(metrics_boosting),
+    #     load_accuracy(metrics_zo_r1),
+    #     load_accuracy(metrics_zo_r8),
+    # ]
 
-    labels = [
-        "XGBLoRA + ZO (α=16, 10 steps merge)",
-        "XGBLoRA + ZO (α=16, 100 steps merge)",
-        "XGBLoRA + ZO (α=16, 300 steps merge)",
-        "XGBLoRA + ZO (α=16, 500 steps merge)",
-        "XGBLoRA + ZO (α=16, 2000 steps merge)",
-    ]
+    # labels = [
+    #     "XGBLoRA + ZO (α=16)",
+    #     "LoRA + ZO (rank=1, α=16)",
+    #     "LoRA + ZO (rank=8, α=16)",
+    # ]
 
-    plt.figure(figsize=(8, 5))
-    x = range(len(labels))
-    plt.bar(x, accuracies)
-    plt.xticks(x, labels, rotation=30, ha="right")
-    plt.ylabel("Accuracy")
-    plt.title("Accuracy comparison (α=16)")
-    plt.grid(axis="y", linestyle="--", alpha=0.5)
-    plt.tight_layout()
+    # plt.figure(figsize=(8, 5))
+    # x = range(len(labels))
+    # plt.bar(x, accuracies)
+    # plt.xticks(x, labels, rotation=30, ha="right")
+    # plt.ylabel("Accuracy")
+    # plt.title("Accuracy comparison (α=16)")
+    # plt.grid(axis="y", linestyle="--", alpha=0.5)
+    # plt.tight_layout()
 
-    acc_output_path = base_dir / "accuracy_comparison_a16.png"
-    plt.savefig(acc_output_path, dpi=150)
+    # acc_output_path = base_dir / "accuracy_comparison_a16.png"
+    # plt.savefig(acc_output_path, dpi=150)
 
     # Also show the figures when run interactively
     plt.show()

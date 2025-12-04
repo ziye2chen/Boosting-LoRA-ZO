@@ -37,10 +37,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--num_train", type=int, default=1000)
     parser.add_argument("--num_dev", type=int, default=500)
     parser.add_argument("--num_eval", type=int, default=1000)
-    parser.add_argument("--eval_steps", type=int, default=4000)
-    parser.add_argument("--save_steps", type=int, default=4000)
+    parser.add_argument("--eval_steps", type=int, default=100)
     parser.add_argument("--logging_steps", type=int, default=10)
-    parser.add_argument("--per_device_train_batch_size", type=int, default=16)
+    parser.add_argument("--per_device_train_batch_size", type=int, default=8)
     parser.add_argument("--per_device_eval_batch_size", type=int, default=8)
     parser.add_argument("--xgblora_steps_per_iteration", type=int, default=1000)
     parser.add_argument("--lora_rank", type=int, default=8)
@@ -110,14 +109,19 @@ def build_base_args(args: argparse.Namespace) -> List[str]:
         "steps",
         "--eval_steps",
         str(args.eval_steps),
+        "--save_strategy",
+        "steps",
         "--save_steps",
-        str(args.save_steps),
+        "1000",
+        "--save_total_limit",
+        "1",
         "--logging_steps",
         str(args.logging_steps),
         "--per_device_train_batch_size",
         str(args.per_device_train_batch_size),
         "--per_device_eval_batch_size",
         str(args.per_device_eval_batch_size),
+        "--load_best_model_at_end",
         "--overwrite_output_dir",
     ]
     if args.extra_args:
