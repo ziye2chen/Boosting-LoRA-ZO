@@ -58,6 +58,7 @@ class LoRALinear(nn.Linear):
             self.scaling = self.lora_alpha / self.r
             # Freezing the pre-trained weight matrix
             self.weight.requires_grad = False
+            logger.info(f"LoRALinear init: r={r}, alpha={lora_alpha}, scaling={self.scaling:.4f}")
         self.reset_parameters()
         if fan_in_fan_out:
             self.weight.data = self.weight.data.transpose(0, 1)
@@ -153,6 +154,36 @@ class LoRA:
         for n, p in model.named_parameters():
             if "lora" not in n:
                 p.requires_grad = False
+
+    def get_adapter_state(self):
+        """
+        Return a lightweight snapshot of all LoRA adapter weights (A and B) for rollback.
+        """
+        state = []
+        for module in self.lora_modules:
+            if hasattr(module, "lora_A") and hasattr(module, "lora_B"):
+                state.append({
+                    "module_id": id(module),
+                    "A": module.lora_A.detach().clone(),
+                    "B": module.lora_B.detach().clone(),
+                })
+        return state
+
+    def load_adapter_state(self, state):
+        """
+        Restore LoRA adapter weights from a snapshot produced by get_adapter_state.
+        """
+        if state is None:
+            return
+        id_to_module = {id(m): m for m in self.lora_modules}
+        for entry in state:
+            mid = entry.get("module_id")
+            if mid in id_to_module:
+                module = id_to_module[mid]
+                if hasattr(module, "lora_A") and hasattr(module, "lora_B"):
+                    with torch.no_grad():
+                        module.lora_A.copy_(entry["A"])
+                        module.lora_B.copy_(entry["B"])
 
     def merge_and_reinit(self):
         """

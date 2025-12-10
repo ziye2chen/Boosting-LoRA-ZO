@@ -60,7 +60,6 @@ class OurArguments(TrainingArguments):
 
     # MeZO
     zo_eps: float = 1e-3 # eps in MeZO
-    zo_num_perturbations: int = 1 # number of random perturbation directions to average per step (default 1 for standard MeZO)
 
     # Prefix tuning
     prefix_tuning: bool = False # whether to use prefix tuning
@@ -77,6 +76,12 @@ class OurArguments(TrainingArguments):
     xgblora: bool = False # whether to use XGBLoRA (gradient boosting with LoRA)
     xgblora_steps_per_iteration: int = 0 # number of steps per boosting iteration (0 = disabled, merge at epoch end)
     xgblora_merge_frequency: int = 1 # merge frequency in epochs (only used if xgblora_steps_per_iteration is 0)
+    # Adaptive merge based on smoothed loss + patience
+    xgblora_use_adaptive_merge: bool = True
+    xgblora_patience: int = 100
+    xgblora_ema_beta: float = 0.9
+    xgblora_improvement_threshold: float = 0.0
+    xgblora_max_steps_per_adapter: int = 0  # 0 = no cap
 
     # Generation
     sampling: bool = False # whether to use sampling
@@ -197,6 +202,10 @@ class Framework:
             if self.args.xgblora:
                 logger.info(f"Using XGBLoRA with rank-1 adapters")
             self.lora_module = LoRA(model, r=lora_r, alpha=self.args.lora_alpha, float16=self.args.load_float16, xgblora=self.args.xgblora)
+            # Log effective scaling
+            logger.info(
+                f"LoRA config -> rank={lora_r}, alpha={self.args.lora_alpha}, scaling={self.args.lora_alpha / max(1, lora_r):.4f}"
+            )
 
         if self.args.head_tuning:
             if model.config.model_type == "opt":

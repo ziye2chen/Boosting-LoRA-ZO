@@ -367,7 +367,7 @@ class OurTrainer(Trainer):
 
         self.state = TrainerState()
         self.state.is_hyper_param_search = trial is not None
-        
+
         # Initialize loss tracking file for XGBLoRA comparison
         self.loss_log_file = os.path.join(args.output_dir, "training_loss.jsonl")
         self.eval_log_file = os.path.join(args.output_dir, "eval_loss.jsonl")
@@ -382,6 +382,19 @@ class OurTrainer(Trainer):
         self._log_buffer_size = 10  # Flush every N writes
         self._loss_write_count = 0
         self._eval_write_count = 0
+
+        # XGBLoRA adaptive merge (patience + smoothed loss)
+        self._xgblora_use_adaptive = getattr(args, "xgblora_use_adaptive_merge", False) and getattr(args, "xgblora", False)
+        self._xgblora_ema_beta = getattr(args, "xgblora_ema_beta", 0.9)
+        self._xgblora_improvement_thresh = getattr(args, "xgblora_improvement_threshold", 0.0)
+        self._xgblora_patience_limit = getattr(args, "xgblora_patience", 100)
+        self._xgblora_max_steps_per_adapter = getattr(args, "xgblora_max_steps_per_adapter", 0)
+        self._xgblora_smoothed_loss = None
+        self._xgblora_best_loss = float("inf")
+        self._xgblora_patience = 0
+        self._xgblora_best_state = None
+        self._xgblora_last_logged_step = 0
+        self._xgblora_adapter_steps = 0
 
         # Activate gradient checkpointing if needed
         if args.gradient_checkpointing:
@@ -633,8 +646,11 @@ class OurTrainer(Trainer):
                     self.state.epoch = epoch + (step + 1) / steps_in_epoch
                     self.control = self.callback_handler.on_step_end(args, self.state, self.control)
 
-                    # XGBLoRA: Merge and reinitialize LoRA weights at specific step intervals
-                    if hasattr(args, 'xgblora') and args.xgblora and hasattr(self, 'lora_module'):
+                    # XGBLoRA: Merge and reinitialize LoRA weights at specific step intervals (disabled when adaptive)
+                    if (
+                        hasattr(args, 'xgblora') and args.xgblora and hasattr(self, 'lora_module')
+                        and not getattr(args, "xgblora_use_adaptive_merge", False)
+                    ):
                         if hasattr(args, 'xgblora_steps_per_iteration') and args.xgblora_steps_per_iteration > 0:
                             if self.state.global_step % args.xgblora_steps_per_iteration == 0:
                                 logger.info(f"XGBLoRA: Merging and reinitializing at step {self.state.global_step}")
@@ -657,16 +673,17 @@ class OurTrainer(Trainer):
             self.control = self.callback_handler.on_epoch_end(args, self.state, self.control)
             self._maybe_log_save_evaluate(tr_loss, model, trial, epoch, ignore_keys_for_eval)
 
-            # XGBLoRA: Merge and reinitialize LoRA weights at the end of each boosting iteration
-            if hasattr(args, 'xgblora') and args.xgblora and hasattr(self, 'lora_module'):
-                # Check if we should merge at this epoch
+            # XGBLoRA: Merge and reinitialize LoRA weights at the end of each boosting iteration (disabled when adaptive)
+            if (
+                hasattr(args, 'xgblora') and args.xgblora and hasattr(self, 'lora_module')
+                and not getattr(args, "xgblora_use_adaptive_merge", False)
+            ):
                 current_iteration = epoch + 1
                 if hasattr(args, 'xgblora_merge_frequency') and args.xgblora_merge_frequency > 0:
                     if current_iteration % args.xgblora_merge_frequency == 0:
                         logger.info(f"XGBLoRA: Merging and reinitializing at iteration {current_iteration}")
                         self.lora_module.merge_and_reinit()
                 else:
-                    # Default: merge at the end of each epoch
                     logger.info(f"XGBLoRA: Merging and reinitializing at iteration {current_iteration}")
                     self.lora_module.merge_and_reinit()
 
@@ -809,7 +826,6 @@ class OurTrainer(Trainer):
     def zo_step(self, model, inputs):
         """
         Estimate gradient by MeZO. Return the loss from f(theta + z)
-        Supports multiple perturbation directions per step for better gradient estimation.
         """
         args = self.args
 
@@ -819,76 +835,44 @@ class OurTrainer(Trainer):
             if param.requires_grad:
                 self.named_parameters_to_optim.append((name, param))
 
-        # Sample the master random seed for this step
-        master_seed = np.random.randint(1000000000)
-        
-        # Accumulate gradient estimates over multiple perturbations
-        grad_estimates = []
-        first_loss = None  # Keep first loss for return value
-        
-        for pert_idx in range(args.zo_num_perturbations):
-            # Derive a unique seed for this perturbation
-            self.zo_random_seed = master_seed + pert_idx
-            
-            # First function evaluation
-            self.zo_perturb_parameters(scaling_factor=1)
-            loss1 = self.zo_forward(model, inputs)
-            
-            if pert_idx == 0:
-                first_loss = loss1  # Save first loss to return
+        # Sample the random seed for sampling z
+        self.zo_random_seed = np.random.randint(1000000000)
 
-            # Second function evaluation
-            self.zo_perturb_parameters(scaling_factor=-2)
-            loss2 = self.zo_forward(model, inputs)
+        # First function evaluation
+        self.zo_perturb_parameters(scaling_factor=1)
+        loss1 = self.zo_forward(model, inputs)
 
-            # Compute gradient estimate for this direction
-            grad_est = ((loss1 - loss2) / (2 * args.zo_eps)).item()
-            grad_estimates.append(grad_est)
-            
-            # Reset model back to its parameters at start of step
-            self.zo_perturb_parameters(scaling_factor=1)
+        # Second function evaluation
+        self.zo_perturb_parameters(scaling_factor=-2)
+        loss2 = self.zo_forward(model, inputs)
 
-        # Average gradient estimates across all perturbations
-        self.projected_grad = np.mean(grad_estimates)
-        
-        # Store master seed and number of perturbations for zo_update
-        self.zo_random_seed = master_seed
-        self.zo_num_perturbations_used = args.zo_num_perturbations
+        self.projected_grad = ((loss1 - loss2) / (2 * self.args.zo_eps)).item()
 
         # No gradient accumulation support
-        assert args.gradient_accumulation_steps == 1
+        assert self.args.gradient_accumulation_steps == 1
+
+        # Reset model back to its parameters at start of step
+        self.zo_perturb_parameters(scaling_factor=1)
         
-        return first_loss
+        return loss1
 
 
     def zo_update(self, model):
         """
         Update the parameters with the estimated gradients.
-        When using multiple perturbations, average the gradient direction across all perturbations.
         """
         args = self.args
-        
-        # Accumulate parameter updates across all perturbations
-        num_perts = getattr(self, 'zo_num_perturbations_used', 1)
-        
+
+        # Reset the random seed for sampling zs
+        torch.manual_seed(self.zo_random_seed)     
+
         for name, param in self.named_parameters_to_optim:
-            # Accumulate z across all perturbations
-            z_avg = torch.zeros_like(param.data)
-            
-            for pert_idx in range(num_perts):
-                # Replay the same random seed used in zo_step
-                torch.manual_seed(self.zo_random_seed + pert_idx)
-                z = torch.normal(mean=0, std=1, size=param.data.size(), device=param.data.device, dtype=param.data.dtype)
-                z_avg += z
-            
-            # Average the direction
-            z_avg = z_avg / num_perts
-            
-            # Apply update with averaged gradient
+            # Resample z
+            z = torch.normal(mean=0, std=1, size=param.data.size(), device=param.data.device, dtype=param.data.dtype)
             if "bias" not in name and "layer_norm" not in name and "layernorm" not in name:
-                param.data = param.data - self._get_learning_rate() * (self.projected_grad * z_avg + args.weight_decay * param.data)
+                param.data = param.data - self._get_learning_rate() * (self.projected_grad * z + args.weight_decay * param.data)
             else:
-                param.data = param.data - self._get_learning_rate() * (self.projected_grad * z_avg)
+                param.data = param.data - self._get_learning_rate() * (self.projected_grad * z)
 
         self.lr_scheduler.step()
 
@@ -926,6 +910,53 @@ class OurTrainer(Trainer):
                     self._loss_write_count = 0
             except Exception as e:
                 logger.warning(f"Failed to write training loss to file: {e}")
+
+            # ---- XGBLoRA adaptive merge (patience + EMA on loss) ----
+            if self._xgblora_use_adaptive and hasattr(self, "lora_module"):
+                current_step = self.state.global_step
+                delta_steps = current_step - self._xgblora_last_logged_step
+                if delta_steps < 0:
+                    delta_steps = 1  # safety
+                self._xgblora_adapter_steps += delta_steps
+                self._xgblora_last_logged_step = current_step
+
+                raw_loss = float(logs["loss"])
+                if self._xgblora_smoothed_loss is None:
+                    self._xgblora_smoothed_loss = raw_loss
+                else:
+                    beta = self._xgblora_ema_beta
+                    self._xgblora_smoothed_loss = beta * self._xgblora_smoothed_loss + (1 - beta) * raw_loss
+
+                # Improvement check
+                if self._xgblora_smoothed_loss < (self._xgblora_best_loss - self._xgblora_improvement_thresh):
+                    self._xgblora_best_loss = self._xgblora_smoothed_loss
+                    self._xgblora_patience = 0
+                    # Snapshot best adapter weights
+                    self._xgblora_best_state = self.lora_module.get_adapter_state()
+                else:
+                    self._xgblora_patience += delta_steps
+
+                # Check patience or max steps per adapter
+                patience_hit = self._xgblora_patience >= self._xgblora_patience_limit
+                step_cap_hit = (self._xgblora_max_steps_per_adapter > 0) and (self._xgblora_adapter_steps >= self._xgblora_max_steps_per_adapter)
+                if patience_hit or step_cap_hit:
+                    logger.info(
+                        f"XGBLoRA adaptive merge: patience_hit={patience_hit}, "
+                        f"step_cap_hit={step_cap_hit}, best_loss={self._xgblora_best_loss:.4f}, "
+                        f"smoothed_loss={self._xgblora_smoothed_loss:.4f}"
+                    )
+                    # Rollback to best adapter weights before merging
+                    if self._xgblora_best_state is not None:
+                        self.lora_module.load_adapter_state(self._xgblora_best_state)
+                    # Merge and reinit for next boosting iteration
+                    self.lora_module.merge_and_reinit()
+                    # Reset trackers
+                    self._xgblora_smoothed_loss = None
+                    self._xgblora_best_loss = float("inf")
+                    self._xgblora_patience = 0
+                    self._xgblora_best_state = None
+                    self._xgblora_adapter_steps = 0
+                    self._xgblora_last_logged_step = current_step
         
         # Save evaluation loss to file  
         if "eval_loss" in logs and hasattr(self, 'eval_log_file'):

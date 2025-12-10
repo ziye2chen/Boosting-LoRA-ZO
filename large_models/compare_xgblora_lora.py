@@ -33,7 +33,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--task_name", default="SST2", help="Task to evaluate.")
     parser.add_argument("--learning_rate", type=float, default=1e-5)
     parser.add_argument("--zo_eps", type=float, default=1e-3)
-    parser.add_argument("--zo_num_perturbations", type=int, default=1, help="Number of perturbation directions per ZO step (default 1)")
     parser.add_argument("--max_steps", type=int, default=20000)
     parser.add_argument("--num_train", type=int, default=1000)
     parser.add_argument("--num_dev", type=int, default=500)
@@ -42,7 +41,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--logging_steps", type=int, default=10)
     parser.add_argument("--per_device_train_batch_size", type=int, default=8)
     parser.add_argument("--per_device_eval_batch_size", type=int, default=8)
-    parser.add_argument("--xgblora_steps_per_iteration", type=int, default=1000)
+    parser.add_argument("--xgblora_steps_per_iteration", type=int, default=0)
+    parser.add_argument("--xgblora_use_adaptive_merge", action="store_true", default=True, help="Use adaptive merge based on smoothed loss + patience")
+    parser.add_argument("--xgblora_patience", type=int, default=100, help="Patience (in steps) before triggering a merge")
+    parser.add_argument("--xgblora_ema_beta", type=float, default=0.9, help="EMA smoothing parameter for loss")
+    parser.add_argument("--xgblora_improvement_threshold", type=float, default=0.0, help="Minimum improvement over best smoothed loss")
+    parser.add_argument("--xgblora_max_steps_per_adapter", type=int, default=0, help="Optional cap on steps per adapter (0 = no cap)")
     parser.add_argument("--lora_rank", type=int, default=8)
     parser.add_argument("--lora_alpha", type=int, default=16)
     parser.add_argument(
@@ -97,10 +101,6 @@ def build_base_args(args: argparse.Namespace) -> List[str]:
         str(args.learning_rate),
         "--zo_eps",
         str(args.zo_eps),
-        "--zo_num_perturbations",
-        str(args.zo_num_perturbations),
-        "--lora_alpha",
-        str(args.lora_alpha),
         "--no_auto_device",
         "--max_steps",
         str(args.max_steps),
@@ -524,7 +524,20 @@ if __name__ == "__main__":
                 "--xgblora_steps_per_iteration",
                 str(args.xgblora_steps_per_iteration),
                 "--xgblora_merge_frequency",
-                "1",
+                "0",  # disable epoch merges when adaptive is used
+            ]
+            + (["--xgblora_use_adaptive_merge"] if args.xgblora_use_adaptive_merge else [])
+            + [
+                "--xgblora_patience",
+                str(args.xgblora_patience),
+                "--xgblora_ema_beta",
+                str(args.xgblora_ema_beta),
+                "--xgblora_improvement_threshold",
+                str(args.xgblora_improvement_threshold),
+                "--xgblora_max_steps_per_adapter",
+                str(args.xgblora_max_steps_per_adapter),
+                "--lora_alpha",
+                str(args.lora_alpha),
             ],
         ),
         ExperimentConfig(
@@ -534,6 +547,8 @@ if __name__ == "__main__":
                 "--lora",
                 "--lora_r",
                 str(args.lora_rank),
+                "--lora_alpha",
+                str(args.lora_alpha),
             ],
         ),
     ]
