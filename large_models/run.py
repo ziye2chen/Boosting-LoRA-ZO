@@ -60,6 +60,7 @@ class OurArguments(TrainingArguments):
 
     # MeZO
     zo_eps: float = 1e-3 # eps in MeZO
+    zo_num_perturbations: int = 1 # number of random perturbation directions to average per step (default 1 for standard MeZO)
 
     # Prefix tuning
     prefix_tuning: bool = False # whether to use prefix tuning

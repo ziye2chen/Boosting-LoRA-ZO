@@ -40,43 +40,62 @@ def main():
     # =========================
 
     # 1. XGBLoRA + ZO, alpha = 16 (JSON)
-    zo_r1_json = base_dir / "loss_curve_lora_zo_r1_a16.json"
-    zo_r1_steps, zo_r1_losses = load_json_step_loss(zo_r1_json)
+    # zo_r8_json = base_dir / "loss_curve_zo_r8_a16.json"
+    # zo_r8_steps, zo_r8_losses = load_json_step_loss(zo_r8_json)
 
-    # 2. LoRA + ZO, rank = 1, alpha = 16 (CSV)
-    zo_r8_csv = base_dir / "step_loss_lora_zo_r8_a16.csv"
-    zo_r8_steps, zo_r8_losses = load_csv_step_loss(zo_r8_csv)
+    # zo_r1_csv = base_dir / "step_loss_zo_r1_a16.csv"
+    # zo_r1_steps, zo_r1_losses = load_csv_step_loss(zo_r1_csv) 
+    # 2. LoRA + ZO, rank = 1, alpha = 16 (CSV) 
+    fo_r8_csv = base_dir / "step_loss_fo_r8_a16.csv"
+    fo_r8_steps, fo_r8_losses = load_csv_step_loss(fo_r8_csv)
     # zo_r1_json = base_dir / "loss_curve_lora_zo_r1_a16.json"
     # zo_r1_steps, zo_r1_losses = load_json_step_loss(zo_r1_json)
 
-    boosting_json = base_dir / "loss_curve_xgblora_a16.json"
-    boosting_steps, boosting_losses = load_json_step_loss(boosting_json)
+    fo_r1_csv = base_dir / "step_loss_fo_r1_a16.csv"
+    fo_r1_steps, fo_r1_losses = load_csv_step_loss(fo_r1_csv)
+
+    # boosting_json = base_dir / "loss_curve_xgblora_a16.json"
+    # boosting_steps, boosting_losses = load_json_step_loss(boosting_json)
 
 
 
 
     plt.figure(figsize=(10, 5))
 
-    plt.plot(
-        boosting_steps,
-        boosting_losses,
-        label="XGBLoRA + ZO (α=16, 100 steps merge)",
-        linewidth=2,
-    )
+    # plt.plot(
+    #     boosting_steps,
+    #     boosting_losses,
+    #     label="XGBLoRA + ZO (α=16, 1000 steps merge)",
+    #     linewidth=2,
+    # )
     
     plt.plot(
-        zo_r1_steps,
-        zo_r1_losses,
-        label="LoRA + ZO (rank=1, α=16)",
+        fo_r1_steps,
+        fo_r1_losses,
+        label="LoRA + FO (rank=1, α=16)",
         linewidth=2,
     )
 
     plt.plot(
-        zo_r8_steps,
-        zo_r8_losses,
-        label="LoRA + ZO (rank=8, α=16)",
+        fo_r8_steps,
+        fo_r8_losses,
+        label="LoRA + FO (rank=8, α=16)",
         linewidth=2,
     )
+
+    # plt.plot(
+    #     zo_r8_steps,
+    #     zo_r8_losses,
+    #     label="LoRA + ZO (rank=8, α=16)",
+    #     linewidth=2,
+    # )
+
+    # plt.plot(
+    #     zo_r1_steps,
+    #     zo_r1_losses,
+    #     label="LoRA + ZO (rank=1, α=16)",
+    #     linewidth=2,
+    # )
 
     plt.xlabel("Steps")
     plt.ylabel("Loss")
@@ -84,14 +103,16 @@ def main():
 
     # Vertical red lines every 100 steps
     max_step = max(
-        boosting_steps[-1],
-        zo_r1_steps[-1],
-        zo_r8_steps[-1],
+        # boosting_steps[-1],
+        # zo_r1_steps[-1],
+        # zo_r8_steps[-1],
+        fo_r1_steps[-1],
+        fo_r8_steps[-1],
     )
     \
-    plt.axvline(x=200, color="blue", linestyle="--", linewidth=0.8, alpha=0.6)
-    # for step in range(100, max_step + 1, 100):
-    #     plt.axvline(x=step, color="red", linestyle="--", linewidth=0.8, alpha=0.6)
+    # plt.axvline(x=1000, color="blue", linestyle="--", linewidth=0.8, alpha=0.6)
+    for step in range(1000, max_step + 1, 1000):
+        plt.axvline(x=step, color="red", linestyle="--", linewidth=0.8, alpha=0.6)
     # for step in range(500, max_step + 1, 100):
     #     plt.axvline(x=step, color="green", linestyle="--", linewidth=0.8, alpha=0.6)
 
@@ -107,14 +128,21 @@ def main():
     # =========================
 
     # Metrics JSON files
-    # metrics_boosting = base_dir / "metrics_xgblora_a16_2.json"
-    # metrics_zo_r1 = base_dir / "metrics_lora_zo_r1_a16_2.json"
-    # metrics_zo_r8 = base_dir / "metrics_lora_zo_r8_a16_2.json"
+    # metrics_boosting = base_dir / "metrics_xgblora_a16.json"
+    # metrics_zo_r8 = base_dir / "metrics_zo_r8_a16.json"
+    metrics_fo_r1 = base_dir / "DROP-opt-350m_fo_r1_a16.json"
+    metrics_fo_r8 = base_dir / "DROP-opt-350m_fo_r8_a16.json"
+    # metrics_zo_r1 = base_dir / "DROP-opt-350m_zo_r1_a16.json"
 
     # def load_accuracy(path: Path) -> float:
     #     with path.open("r", encoding="utf-8") as f:
     #         data = json.load(f)
     #     return float(data["accuracy"])
+
+    def load_f1(path: Path) -> float:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        return float(data["f1"])
 
     # accuracies = [
     #     load_accuracy(metrics_boosting),
@@ -122,11 +150,27 @@ def main():
     #     load_accuracy(metrics_zo_r8),
     # ]
 
+    f1s = [
+        # load_f1(metrics_boosting),
+        load_f1(metrics_fo_r1),
+        load_f1(metrics_fo_r8),
+        # load_f1(metrics_zo_r1),
+        # load_f1(metrics_zo_r8),
+    ]
+
     # labels = [
     #     "XGBLoRA + ZO (α=16)",
     #     "LoRA + ZO (rank=1, α=16)",
     #     "LoRA + ZO (rank=8, α=16)",
     # ]
+
+    labels = [
+        # "XGBLoRA + ZO (α=16)",
+        "LoRA + FO (rank=1, α=16)",
+        "LoRA + FO (rank=8, α=16)",
+        # "LoRA + ZO (rank=1, α=16)",
+        # "LoRA + ZO (rank=8, α=16)",
+    ]
 
     # plt.figure(figsize=(8, 5))
     # x = range(len(labels))
@@ -140,6 +184,17 @@ def main():
     # acc_output_path = base_dir / "accuracy_comparison_a16.png"
     # plt.savefig(acc_output_path, dpi=150)
 
+    plt.figure(figsize=(8, 5))
+    x = range(len(labels))
+    plt.bar(x, f1s)
+    plt.xticks(x, labels, rotation=30, ha="right")
+    plt.ylabel("F1")
+    plt.title("F1 comparison (α=16)")
+    plt.grid(axis="y", linestyle="--", alpha=0.5)
+    plt.tight_layout()
+    f1_output_path = base_dir / "f1_comparison_a16.png"
+    plt.savefig(f1_output_path, dpi=150)
+ 
     # Also show the figures when run interactively
     plt.show()
 

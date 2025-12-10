@@ -809,6 +809,7 @@ class OurTrainer(Trainer):
     def zo_step(self, model, inputs):
         """
         Estimate gradient by MeZO. Return the loss from f(theta + z)
+        Supports multiple perturbation directions per step for better gradient estimation.
         """
         args = self.args
 
@@ -818,44 +819,76 @@ class OurTrainer(Trainer):
             if param.requires_grad:
                 self.named_parameters_to_optim.append((name, param))
 
-        # Sample the random seed for sampling z
-        self.zo_random_seed = np.random.randint(1000000000)
+        # Sample the master random seed for this step
+        master_seed = np.random.randint(1000000000)
+        
+        # Accumulate gradient estimates over multiple perturbations
+        grad_estimates = []
+        first_loss = None  # Keep first loss for return value
+        
+        for pert_idx in range(args.zo_num_perturbations):
+            # Derive a unique seed for this perturbation
+            self.zo_random_seed = master_seed + pert_idx
+            
+            # First function evaluation
+            self.zo_perturb_parameters(scaling_factor=1)
+            loss1 = self.zo_forward(model, inputs)
+            
+            if pert_idx == 0:
+                first_loss = loss1  # Save first loss to return
 
-        # First function evaluation
-        self.zo_perturb_parameters(scaling_factor=1)
-        loss1 = self.zo_forward(model, inputs)
+            # Second function evaluation
+            self.zo_perturb_parameters(scaling_factor=-2)
+            loss2 = self.zo_forward(model, inputs)
 
-        # Second function evaluation
-        self.zo_perturb_parameters(scaling_factor=-2)
-        loss2 = self.zo_forward(model, inputs)
+            # Compute gradient estimate for this direction
+            grad_est = ((loss1 - loss2) / (2 * args.zo_eps)).item()
+            grad_estimates.append(grad_est)
+            
+            # Reset model back to its parameters at start of step
+            self.zo_perturb_parameters(scaling_factor=1)
 
-        self.projected_grad = ((loss1 - loss2) / (2 * self.args.zo_eps)).item()
+        # Average gradient estimates across all perturbations
+        self.projected_grad = np.mean(grad_estimates)
+        
+        # Store master seed and number of perturbations for zo_update
+        self.zo_random_seed = master_seed
+        self.zo_num_perturbations_used = args.zo_num_perturbations
 
         # No gradient accumulation support
-        assert self.args.gradient_accumulation_steps == 1
-
-        # Reset model back to its parameters at start of step
-        self.zo_perturb_parameters(scaling_factor=1)
+        assert args.gradient_accumulation_steps == 1
         
-        return loss1
+        return first_loss
 
 
     def zo_update(self, model):
         """
         Update the parameters with the estimated gradients.
+        When using multiple perturbations, average the gradient direction across all perturbations.
         """
         args = self.args
-
-        # Reset the random seed for sampling zs
-        torch.manual_seed(self.zo_random_seed)     
-
+        
+        # Accumulate parameter updates across all perturbations
+        num_perts = getattr(self, 'zo_num_perturbations_used', 1)
+        
         for name, param in self.named_parameters_to_optim:
-            # Resample z
-            z = torch.normal(mean=0, std=1, size=param.data.size(), device=param.data.device, dtype=param.data.dtype)
+            # Accumulate z across all perturbations
+            z_avg = torch.zeros_like(param.data)
+            
+            for pert_idx in range(num_perts):
+                # Replay the same random seed used in zo_step
+                torch.manual_seed(self.zo_random_seed + pert_idx)
+                z = torch.normal(mean=0, std=1, size=param.data.size(), device=param.data.device, dtype=param.data.dtype)
+                z_avg += z
+            
+            # Average the direction
+            z_avg = z_avg / num_perts
+            
+            # Apply update with averaged gradient
             if "bias" not in name and "layer_norm" not in name and "layernorm" not in name:
-                param.data = param.data - self._get_learning_rate() * (self.projected_grad * z + args.weight_decay * param.data)
+                param.data = param.data - self._get_learning_rate() * (self.projected_grad * z_avg + args.weight_decay * param.data)
             else:
-                param.data = param.data - self._get_learning_rate() * (self.projected_grad * z)
+                param.data = param.data - self._get_learning_rate() * (self.projected_grad * z_avg)
 
         self.lr_scheduler.step()
 

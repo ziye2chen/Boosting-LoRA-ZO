@@ -33,6 +33,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--task_name", default="SST2", help="Task to evaluate.")
     parser.add_argument("--learning_rate", type=float, default=1e-5)
     parser.add_argument("--zo_eps", type=float, default=1e-3)
+    parser.add_argument("--zo_num_perturbations", type=int, default=1, help="Number of perturbation directions per ZO step (default 1)")
     parser.add_argument("--max_steps", type=int, default=20000)
     parser.add_argument("--num_train", type=int, default=1000)
     parser.add_argument("--num_dev", type=int, default=500)
@@ -96,6 +97,10 @@ def build_base_args(args: argparse.Namespace) -> List[str]:
         str(args.learning_rate),
         "--zo_eps",
         str(args.zo_eps),
+        "--zo_num_perturbations",
+        str(args.zo_num_perturbations),
+        "--lora_alpha",
+        str(args.lora_alpha),
         "--no_auto_device",
         "--max_steps",
         str(args.max_steps),
@@ -529,8 +534,6 @@ if __name__ == "__main__":
                 "--lora",
                 "--lora_r",
                 str(args.lora_rank),
-                "--lora_alpha",
-                str(args.lora_alpha),
             ],
         ),
     ]
