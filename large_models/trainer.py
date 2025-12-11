@@ -389,12 +389,24 @@ class OurTrainer(Trainer):
         self._xgblora_improvement_thresh = getattr(args, "xgblora_improvement_threshold", 0.0)
         self._xgblora_patience_limit = getattr(args, "xgblora_patience", 100)
         self._xgblora_max_steps_per_adapter = getattr(args, "xgblora_max_steps_per_adapter", 0)
+        self._xgblora_min_steps_per_adapter = getattr(args, "xgblora_min_steps_per_adapter", 0)
         self._xgblora_smoothed_loss = None
         self._xgblora_best_loss = float("inf")
         self._xgblora_patience = 0
         self._xgblora_best_state = None
         self._xgblora_last_logged_step = 0
         self._xgblora_adapter_steps = 0
+        self._xgblora_blocked_on_min_logged = False
+        if (
+            self._xgblora_min_steps_per_adapter > 0
+            and self._xgblora_max_steps_per_adapter > 0
+            and self._xgblora_min_steps_per_adapter > self._xgblora_max_steps_per_adapter
+        ):
+            logger.warning(
+                f"xgblora_min_steps_per_adapter ({self._xgblora_min_steps_per_adapter}) "
+                f"is greater than xgblora_max_steps_per_adapter ({self._xgblora_max_steps_per_adapter}); "
+                "adapter may merge immediately after min is reached."
+            )
 
         # Activate gradient checkpointing if needed
         if args.gradient_checkpointing:
@@ -939,7 +951,18 @@ class OurTrainer(Trainer):
                 # Check patience or max steps per adapter
                 patience_hit = self._xgblora_patience >= self._xgblora_patience_limit
                 step_cap_hit = (self._xgblora_max_steps_per_adapter > 0) and (self._xgblora_adapter_steps >= self._xgblora_max_steps_per_adapter)
-                if patience_hit or step_cap_hit:
+                min_steps_met = self._xgblora_adapter_steps >= self._xgblora_min_steps_per_adapter
+                ready_to_merge = (patience_hit or step_cap_hit) and min_steps_met
+
+                if not ready_to_merge and (patience_hit or step_cap_hit) and not min_steps_met:
+                    if not self._xgblora_blocked_on_min_logged:
+                        logger.info(
+                            f"XGBLoRA merge delayed: min_steps_per_adapter={self._xgblora_min_steps_per_adapter}, "
+                            f"adapter_steps={self._xgblora_adapter_steps}"
+                        )
+                        self._xgblora_blocked_on_min_logged = True
+
+                if ready_to_merge:
                     logger.info(
                         f"XGBLoRA adaptive merge: patience_hit={patience_hit}, "
                         f"step_cap_hit={step_cap_hit}, best_loss={self._xgblora_best_loss:.4f}, "
@@ -957,6 +980,7 @@ class OurTrainer(Trainer):
                     self._xgblora_best_state = None
                     self._xgblora_adapter_steps = 0
                     self._xgblora_last_logged_step = current_step
+                    self._xgblora_blocked_on_min_logged = False
         
         # Save evaluation loss to file  
         if "eval_loss" in logs and hasattr(self, 'eval_log_file'):

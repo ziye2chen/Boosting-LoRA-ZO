@@ -14,6 +14,16 @@ import numpy as np
 RUN_SCRIPT = Path(__file__).parent / "run.py"
 
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    if v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    raise argparse.ArgumentTypeError("Boolean value expected.")
+
+
 @dataclass
 class ExperimentConfig:
     name: str
@@ -42,11 +52,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--per_device_train_batch_size", type=int, default=8)
     parser.add_argument("--per_device_eval_batch_size", type=int, default=8)
     parser.add_argument("--xgblora_steps_per_iteration", type=int, default=0)
-    parser.add_argument("--xgblora_use_adaptive_merge", action="store_true", default=True, help="Use adaptive merge based on smoothed loss + patience")
+    parser.add_argument("--xgblora_use_adaptive_merge", type=str2bool, default=True, help="Use adaptive merge based on smoothed loss + patience (true/false)")
     parser.add_argument("--xgblora_patience", type=int, default=100, help="Patience (in steps) before triggering a merge")
     parser.add_argument("--xgblora_ema_beta", type=float, default=0.9, help="EMA smoothing parameter for loss")
     parser.add_argument("--xgblora_improvement_threshold", type=float, default=0.0, help="Minimum improvement over best smoothed loss")
     parser.add_argument("--xgblora_max_steps_per_adapter", type=int, default=0, help="Optional cap on steps per adapter (0 = no cap)")
+    parser.add_argument("--xgblora_min_steps_per_adapter", type=int, default=0, help="Force each adapter to train at least N steps before merge (0 = no minimum)")
     parser.add_argument("--lora_rank", type=int, default=8)
     parser.add_argument("--lora_alpha", type=int, default=16)
     parser.add_argument(
@@ -170,10 +181,12 @@ def run_single_experiment(
             "merge_eval_curve_file": merge_eval_path,
         }
 
+    exp_args = exp.extra_args() if callable(exp.extra_args) else exp.extra_args
+
     cmd = (
         ["python", str(RUN_SCRIPT)]
         + base_args
-        + exp.extra_args
+        + exp_args
         + [
             "--output_dir",
             str(run_output_dir),
@@ -519,26 +532,28 @@ if __name__ == "__main__":
         ExperimentConfig(
             name="xgblora_zo",
             display_name="XGBLoRA+ZO",
-            extra_args=[
+            extra_args=lambda: (
+                [
                 "--xgblora",
                 "--xgblora_steps_per_iteration",
                 str(args.xgblora_steps_per_iteration),
-                "--xgblora_merge_frequency",
-                "0",  # disable epoch merges when adaptive is used
-            ]
-            + (["--xgblora_use_adaptive_merge"] if args.xgblora_use_adaptive_merge else [])
-            + [
-                "--xgblora_patience",
-                str(args.xgblora_patience),
-                "--xgblora_ema_beta",
-                str(args.xgblora_ema_beta),
-                "--xgblora_improvement_threshold",
-                str(args.xgblora_improvement_threshold),
-                "--xgblora_max_steps_per_adapter",
-                str(args.xgblora_max_steps_per_adapter),
-                "--lora_alpha",
-                str(args.lora_alpha),
-            ],
+                    "--xgblora_use_adaptive_merge",
+                    str(args.xgblora_use_adaptive_merge),
+                    "--xgblora_patience",
+                    str(args.xgblora_patience),
+                    "--xgblora_ema_beta",
+                    str(args.xgblora_ema_beta),
+                    "--xgblora_improvement_threshold",
+                    str(args.xgblora_improvement_threshold),
+                    "--xgblora_max_steps_per_adapter",
+                    str(args.xgblora_max_steps_per_adapter),
+                    "--xgblora_min_steps_per_adapter",
+                    str(args.xgblora_min_steps_per_adapter),
+                    "--lora_alpha",
+                    str(args.lora_alpha),
+                ]
+                + ["--xgblora_merge_frequency", "0"]  # disable epoch merges; we control via steps or adaptive
+            ),
         ),
         ExperimentConfig(
             name="lora_zo",

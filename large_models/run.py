@@ -71,7 +71,7 @@ class OurArguments(TrainingArguments):
     lora: bool = False # whether to use LoRA
     lora_alpha: int = 16 # alpha in LoRA
     lora_r: int = 8 # r in LoRA
-    
+
     # XGBLoRA (eXtreme Gradient Boosting LoRA)
     xgblora: bool = False # whether to use XGBLoRA (gradient boosting with LoRA)
     xgblora_steps_per_iteration: int = 0 # number of steps per boosting iteration (0 = disabled, merge at epoch end)
@@ -82,6 +82,7 @@ class OurArguments(TrainingArguments):
     xgblora_ema_beta: float = 0.9
     xgblora_improvement_threshold: float = 0.0
     xgblora_max_steps_per_adapter: int = 0  # 0 = no cap
+    xgblora_min_steps_per_adapter: int = 0  # 0 = no minimum
 
     # Generation
     sampling: bool = False # whether to use sampling
